@@ -1,4 +1,6 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
+using Windows.Devices.Enumeration;
 using Windows.Devices.I2c;
 
 namespace LessonTempertureMPL115A2
@@ -22,11 +24,12 @@ namespace LessonTempertureMPL115A2
 
         // I2C Device
         private I2cDevice I2C;
-        public MPL115A2(ref I2cDevice I2CDevice)
+        private int I2C_ADDRESS { get; set; } = MPL115A2_ADDRESS;
+        public MPL115A2(int i2cAddress = MPL115A2_ADDRESS)
         {
-            this.I2C = I2CDevice;
+            I2C_ADDRESS = i2cAddress;
         }
-        void readCoefficients()
+        private void readCoefficients()
         {
             int a0coeff;
             int b1coeff;
@@ -44,28 +47,62 @@ namespace LessonTempertureMPL115A2
             _mpl115a2_c12 = (float)c12coeff;
             _mpl115a2_c12 /= (float)4194304.0;
         }
-        public float[] getPT()
+        public static bool IsInitialised { get; private set; } = false;
+        private void Initialise()
         {
-            //read correction coeficients, used for pressure
-            readCoefficients();
+            if (!IsInitialised)
+            {
+                EnsureInitializedAsync().Wait();
+            }
+        }
+        private async Task EnsureInitializedAsync()
+        {
+            if (IsInitialised) { return; }
+            try
+            {
+                var settings = new I2cConnectionSettings(I2C_ADDRESS);
+                settings.BusSpeed = I2cBusSpeed.FastMode;
+                settings.SharingMode = I2cSharingMode.Shared;
+                string aqs = I2cDevice.GetDeviceSelector("I2C1");         /* Find the selector string for the I2C bus controller */
+                var dis = await DeviceInformation.FindAllAsync(aqs);      /* Find the I2C bus controller device with our selector string           */
+                I2C = await I2cDevice.FromIdAsync(dis[0].Id, settings);   /* Create an I2cDevice with our selected bus controller and I2C settings */
 
-            uint pressure, temp;
-            float pressureComp;
+                readCoefficients();
+                InitiliseRegisters();
+                IsInitialised = true;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("I2C Initialization Failed", ex);
+            }
+        }
+        protected virtual void InitiliseRegisters()
+        {
             write8(MPL115A2_REGISTER_STARTCONVERSION, 0x00);
-            // Wait a bit for the conversion to complete (3ms max)
-            Task.Delay(5).Wait();
-
-            //read pressure and temperature data from device
-            pressure = (uint)I2CRead16(MPL115A2_REGISTER_PRESSURE_MSB)>>6;
-            temp = (uint)I2CRead16(MPL115A2_REGISTER_TEMP_MSB)>>6;
-
+        }
+        private float getRawTemperature()
+        {
+            //read temperature RAW data from device
+            return (uint)I2CRead16(MPL115A2_REGISTER_TEMP_MSB) >> 6;
+        }
+        public float getTemperature()
+        {
+            Initialise();
+            float rawTemp = getRawTemperature();
+            return ((float)rawTemp - 498.0F) / -5.35F + 25.0F;       // C
+        }
+        public float getPressure()
+        {
+            Initialise();
+            uint pressure;
+            float rawTemp = getRawTemperature();
+            float pressureComp;
+            //read pressure data from device
+            pressure = (uint)I2CRead16(MPL115A2_REGISTER_PRESSURE_MSB) >> 6;
             // See datasheet p.6 for evaluation sequence
-            pressureComp = _mpl115a2_a0 + (_mpl115a2_b1 + _mpl115a2_c12 * temp) * pressure + _mpl115a2_b2 * temp;
-
-            float[] Data = new float[2];
-            Data[0] = ((65.0F / 1023.0F) * pressure) + 50.0F;        // kPa
-            Data[1] = ((float)temp - 498.0F) / -5.35F + 25.0F;       // C
-            return Data;
+            pressureComp = _mpl115a2_a0 + (_mpl115a2_b1 + _mpl115a2_c12 * rawTemp) * pressure + _mpl115a2_b2 * rawTemp;
+            //calculate pressure and return pressure data
+            return ((65.0F / 1023.0F) * pressure) + 50.0F;        // kPa
         }
         private void write8(byte addr, byte cmd)
         {
