@@ -1,11 +1,8 @@
 ﻿using System;
 using Windows.ApplicationModel.Background;
 using System.Threading.Tasks;
-using Microsoft.Devices.Tpm;
-using Microsoft.Azure.Devices.Client;
-using System.Text;
-
-// The Background Application template is documented at http://go.microsoft.com/fwlink/?LinkID=533884&clcid=0x409
+using Glovebox.Graphics.Drivers;
+using Glovebox.Graphics.Components;
 
 namespace LessonTempertureMPL115A2
 {
@@ -13,32 +10,17 @@ namespace LessonTempertureMPL115A2
     {
         // MPL115A2 Sensor
         private MPL115A2 MPL115A2Sensor;
-        //private void initDevice()
-        //{
-        //    TpmDevice device = new TpmDevice(0);
-        //    string hubUri = device.GetHostName();
-        //    string deviceId = device.GetDeviceId();
-        //    string sasToken = device.GetSASToken();
-        //    _sendDeviceClient = DeviceClient.Create(hubUri, AuthenticationMethodFactory.CreateAuthenticationWithToken(deviceId, sasToken), TransportType.Amqp);
-        //}
-        //private DeviceClient _sendDeviceClient;
-        //private async void SendMessages(string strMessage)
-        //{
-        //    string messageString = strMessage;
-        //    var message = new Message(Encoding.ASCII.GetBytes(messageString));
-        //    await _sendDeviceClient.SendEventAsync(message);
-        //}
+        //LED matrix
+        Ht16K33 driver = new Ht16K33(new byte[] { 0x70 }, Ht16K33.Rotate.None);
+
         public void Run(IBackgroundTaskInstance taskInstance)
         {
             MPL115A2Sensor = new MPL115A2();
-            //InitializeI2CDevice();
-            //initDevice();
+            LED8x8Matrix matrix = new LED8x8Matrix(driver);
             while (true)
             {
-                float temp = MPL115A2Sensor.getPressure();  //data[0]:pressure kPa, data[1]:temperature
-                float pressure = MPL115A2Sensor.getTemperature();
-                String strLux = pressure.ToString() + " " + temp.ToString();
-                //SendMessages(strLux);
+                var message = $"{Math.Round(MPL115A2Sensor.getPressure(), 1)}kPa, {Math.Round(MPL115A2Sensor.getTemperature(), 1)}C ";
+                matrix.ScrollStringInFromRight(message, 70);
                 Task.Delay(1000).Wait();
             }
         }
