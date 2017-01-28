@@ -68,7 +68,6 @@ namespace LessonTempertureMPL115A2
                 I2C = await I2cDevice.FromIdAsync(dis[0].Id, settings);   /* Create an I2cDevice with our selected bus controller and I2C settings */
 
                 readCoefficients();
-                InitiliseRegisters();
                 IsInitialised = true;
             }
             catch (Exception ex)
@@ -76,18 +75,16 @@ namespace LessonTempertureMPL115A2
                 throw new Exception("I2C Initialization Failed", ex);
             }
         }
-        protected virtual void InitiliseRegisters()
-        {
-            write8(MPL115A2_REGISTER_STARTCONVERSION, 0x00);
-        }
         private double getRawTemperature()
         {
+            Initialise();
+            write8(MPL115A2_REGISTER_STARTCONVERSION, 0x00);
+            Task.Delay(3).Wait();
             //read temperature RAW data from device
             return (uint)I2CRead16(MPL115A2_REGISTER_TEMP_MSB) >> 6;
         }
         public double getTemperature()
         {
-            Initialise();
             double rawTemp = getRawTemperature();
             //return (rawTemp - 498.0) / -5.35 + 25.0;       // C
             //return rawTemp * -0.307 + 234.1 //F
@@ -95,7 +92,6 @@ namespace LessonTempertureMPL115A2
         }
         public double getPressure()
         {
-            Initialise();
             uint pressure;
             double rawTemp = getRawTemperature();
             double pressureComp;
