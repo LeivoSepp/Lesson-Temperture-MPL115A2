@@ -17,10 +17,10 @@ namespace LessonTempertureMPL115A2
         private const int MPL115A2_REGISTER_B2_COEFF_MSB = 0x08;
         private const int MPL115A2_REGISTER_C12_COEFF_MSB = 0x0A;
 
-        private float _mpl115a2_a0;
-        private float _mpl115a2_b1;
-        private float _mpl115a2_b2;
-        private float _mpl115a2_c12;
+        private double _mpl115a2_a0;
+        private double _mpl115a2_b1;
+        private double _mpl115a2_b2;
+        private double _mpl115a2_c12;
 
         // I2C Device
         private I2cDevice I2C;
@@ -41,11 +41,11 @@ namespace LessonTempertureMPL115A2
             b2coeff = I2CRead16(MPL115A2_REGISTER_B2_COEFF_MSB);
             c12coeff = I2CRead16(MPL115A2_REGISTER_C12_COEFF_MSB) >> 2;
 
-            _mpl115a2_a0 = (float)a0coeff / 8;
-            _mpl115a2_b1 = (float)b1coeff / 8192;
-            _mpl115a2_b2 = (float)b2coeff / 16384;
-            _mpl115a2_c12 = (float)c12coeff;
-            _mpl115a2_c12 /= (float)4194304.0;
+            _mpl115a2_a0 = (double)a0coeff / 8;
+            _mpl115a2_b1 = (double)b1coeff / 8192;
+            _mpl115a2_b2 = (double)b2coeff / 16384;
+            _mpl115a2_c12 = (double)c12coeff;
+            _mpl115a2_c12 /= (double)4194304.0;
         }
         public static bool IsInitialised { get; private set; } = false;
         private void Initialise()
@@ -80,29 +80,31 @@ namespace LessonTempertureMPL115A2
         {
             write8(MPL115A2_REGISTER_STARTCONVERSION, 0x00);
         }
-        private float getRawTemperature()
+        private double getRawTemperature()
         {
             //read temperature RAW data from device
             return (uint)I2CRead16(MPL115A2_REGISTER_TEMP_MSB) >> 6;
         }
-        public float getTemperature()
+        public double getTemperature()
         {
             Initialise();
-            float rawTemp = getRawTemperature();
-            return ((float)rawTemp - 498.0F) / -5.35F + 25.0F;       // C
+            double rawTemp = getRawTemperature();
+            //return (rawTemp - 498.0) / -5.35 + 25.0;       // C
+            //return rawTemp * -0.307 + 234.1 //F
+            return rawTemp * -0.1706 + 112.27; //C
         }
-        public float getPressure()
+        public double getPressure()
         {
             Initialise();
             uint pressure;
-            float rawTemp = getRawTemperature();
-            float pressureComp;
+            double rawTemp = getRawTemperature();
+            double pressureComp;
             //read pressure data from device
             pressure = (uint)I2CRead16(MPL115A2_REGISTER_PRESSURE_MSB) >> 6;
-            // See datasheet p.6 for evaluation sequence
+            // adding factory correction
             pressureComp = _mpl115a2_a0 + (_mpl115a2_b1 + _mpl115a2_c12 * rawTemp) * pressure + _mpl115a2_b2 * rawTemp;
             //calculate pressure and return pressure data
-            return ((65.0F / 1023.0F) * pressure) + 50.0F;        // kPa
+            return ((65.0 / 1023.0) * pressure) + 50.0;        // kPa
         }
         private void write8(byte addr, byte cmd)
         {
