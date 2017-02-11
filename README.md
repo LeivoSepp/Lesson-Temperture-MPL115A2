@@ -15,9 +15,11 @@ Pressure is returned in the SI units of Pascals. 100 Pascals = 1 hPa = 1 milliba
 As thi is not very precise sensor, it is not recommended to use for altimeter.
 
 ## How to connect this sensor into Raspberry PI?
-To connect this sensor to Raspberry PI you need 4 wires. Two of the wires used for voltage Vin (+3V from Raspberry) and ground GND and remaining two are used for data. 
+To connect this sensor to Raspberry PI you need 4 wires. Two of the wires used for voltage VDD (+3V from Raspberry) and ground GND and remaining two are used for data. 
 As this is digital sensor, it uses I2C protocol to communicate with the Raspberry. For I2C we need two wires, Data (SDA) and Clock (SCL).
 Connect sensor SDA and SCL pins accordingly to Raspberry SDA and SCL pins. 
+
+![image](https://cloud.githubusercontent.com/assets/13704023/22856431/e6cee556-f099-11e6-8d96-7d2e1baf3985.png)
 
 ## How do I write the code?
 I made it very simple for you. You just need to add NuGet package RobootikaCOM.MPL115A2 to your project and you are almost done :)
