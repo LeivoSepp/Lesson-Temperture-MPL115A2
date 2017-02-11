@@ -24,10 +24,10 @@ namespace LessonTempertureMPL115A2
 
         // I2C Device
         private I2cDevice I2C;
-        private int I2C_ADDRESS { get; set; } = MPL115A2_ADDRESS;
-        public MPL115A2(int i2cAddress = MPL115A2_ADDRESS)
+        private int I2C_ADDRESS = MPL115A2_ADDRESS;
+        public MPL115A2()
         {
-            I2C_ADDRESS = i2cAddress;
+            Initialise();
         }
         private void readCoefficients()
         {
@@ -77,7 +77,6 @@ namespace LessonTempertureMPL115A2
         }
         private double getRawTemperature()
         {
-            Initialise();
             write8(MPL115A2_REGISTER_STARTCONVERSION, 0x00);
             Task.Delay(3).Wait();
             //read temperature RAW data from device
@@ -88,7 +87,7 @@ namespace LessonTempertureMPL115A2
             double rawTemp = getRawTemperature();
             //return (rawTemp - 498.0) / -5.35 + 25.0;       // C
             //return rawTemp * -0.307 + 234.1 //F
-            return rawTemp * -0.1706 + 112.27; //C
+            return Math.Round(rawTemp * -0.1706 + 112.27, 2); //C
         }
         public double getPressure()
         {
@@ -100,7 +99,7 @@ namespace LessonTempertureMPL115A2
             // adding factory correction
             pressureComp = _mpl115a2_a0 + (_mpl115a2_b1 + _mpl115a2_c12 * rawTemp) * pressure + _mpl115a2_b2 * rawTemp;
             //calculate pressure and return pressure data
-            return ((65.0 / 1023.0) * pressure) + 50.0;        // kPa
+            return Math.Round(((65.0 / 1023.0) * pressure) + 50, 2);        // kPa
         }
         private void write8(byte addr, byte cmd)
         {
