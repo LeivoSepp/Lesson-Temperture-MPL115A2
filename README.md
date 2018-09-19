@@ -24,14 +24,19 @@ Connect sensor SDA and SCL pins accordingly to Raspberry SDA and SCL pins.
 ## How do I write the code?
 I made it very simple for you. You just need to add NuGet package RobootikaCOM.MPL115A2 to your project and you are almost done :)
 
-After adding these NuGet packages, you just need to write 2 lines of code.
+After adding these NuGet packages, you just need to write 3 lines of code.
 
-1. Create an object for sensor: 
+1. Add reference to this module
+````C#
+using RobootikaCOM.MPL115A2;
+````
+
+2. Create an object for sensor: 
 ````C#
         private MPL115A2 MPL115A2Sensor = new MPL115A2();
 ````
 
-2. Write a while-loop, to read data from the sensor every 1 sec.
+3. Write a while-loop, to read data from the sensor every 1 sec.
 ````C#
             while (true)
             {
@@ -49,6 +54,7 @@ You need to integrate this project with my other example, where I teach how to s
 using System;
 using Windows.ApplicationModel.Background;
 using System.Threading.Tasks;
+using RobootikaCOM.MPL115A2;
 
 namespace LessonTempertureMPL115A2
 {
